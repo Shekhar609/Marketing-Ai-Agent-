@@ -106,7 +106,7 @@ async def test_crm_connectors_unit():
     assert sf_test["success"] is True
     sf_sync = await sf.sync()
     assert sf_sync["success"] is True
-    assert len(sf_sync["leads"]) == 1
+    assert len(sf_sync["leads"]) == 2
 
 
 @pytest.mark.asyncio
