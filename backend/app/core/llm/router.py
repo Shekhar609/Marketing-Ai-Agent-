@@ -59,12 +59,22 @@ class LLMRouter:
         max_tokens: int = 2048,
     ) -> LLMResponse:
         client, model = self.get_client_and_model(complexity)
-        return await client.generate(
-            messages=messages,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        try:
+            return await client.generate(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(f"LLM generate call failed on {model}: {exc}. Falling back to mock client.")
+            return await self._mock.generate(
+                messages=messages,
+                model="mock-offline-fallback",
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
 
     async def generate_structured(
         self,
@@ -74,12 +84,22 @@ class LLMRouter:
         temperature: float = 0.2,
     ) -> T:
         client, model = self.get_client_and_model(complexity)
-        return await client.generate_structured(
-            messages=messages,
-            schema=schema,
-            model=model,
-            temperature=temperature,
-        )
+        try:
+            return await client.generate_structured(
+                messages=messages,
+                schema=schema,
+                model=model,
+                temperature=temperature,
+            )
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(f"LLM generate_structured call failed on {model}: {exc}. Falling back to mock client.")
+            return await self._mock.generate_structured(
+                messages=messages,
+                schema=schema,
+                model="mock-offline-fallback",
+                temperature=temperature,
+            )
 
 
 llm_router = LLMRouter()

@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     CHEAP_LLM_MODEL: str = "gpt-4o-mini"
     REASONING_LLM_MODEL: str = "gpt-4o"
     GEMINI_FLASH_MODEL: str = "gemini-1.5-flash"
-    GEMINI_PRO_MODEL: str = "gemini-1.5-pro"
+    GEMINI_PRO_MODEL: str = "gemini-1.5-flash"
     
     # Enterprise Guardrails
     ENABLE_TENANT_ISOLATION: bool = True
