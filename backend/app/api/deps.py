@@ -18,7 +18,7 @@ from app.repositories.user_repo import user_repo
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_PREFIX}/auth/login",
-    auto_error=False
+    auto_error=True
 )
 
 
@@ -26,49 +26,29 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
     token: Optional[str] = Depends(oauth2_scheme)
 ) -> User:
-    """Validate JWT token and return authenticated User object, or provide default tenant user."""
-    if token:
-        try:
-            payload = decode_access_token(token)
-            user_id = payload.get("sub")
-            if user_id:
-                user = await user_repo.get(db, user_id)
-                if user and user.is_active:
-                    return user
-        except Exception:
-            pass
+    """Validate JWT token and return the authenticated user."""
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    # Seamless fallback for UI/Local operations: return active user
-    from sqlalchemy import select
-    stmt = select(User).where(User.is_active == True).limit(1)
-    res = await db.execute(stmt)
-    user = res.scalars().first()
-    if user:
-        return user
+    try:
+        payload = decode_access_token(token)
+        user_id = payload.get("sub")
+        if user_id:
+            user = await user_repo.get(db, user_id)
+            if user and user.is_active:
+                return user
+    except Exception:
+        pass
 
-    # Bootstrap default organization and admin user if fresh database
-    from app.models.organization import Organization
-    from app.core.security import hash_password
-    org = Organization(
-        name="Enterprise Revenue Operations",
-        slug="enterprise-ops",
-        industry="Technology / AI",
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired authentication token",
+        headers={"WWW-Authenticate": "Bearer"},
     )
-    db.add(org)
-    await db.flush()
-
-    user = User(
-        email="admin@aipnt.ai",
-        hashed_password=hash_password("adminpassword123"),
-        full_name="AIPNT Executive",
-        organization_id=org.id,
-        role=UserRole.ADMIN,
-        is_active=True,
-    )
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return user
 
 
 async def get_current_tenant(
